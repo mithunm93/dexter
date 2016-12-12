@@ -1,64 +1,58 @@
-const fetch = require("node-fetch");
-const pokeID = require("./pokeID");
-const pokeAPIUrl =  "http://pokeapi.co/api/v2/";
-
-var information = (req, res) => {
-  const pokemonName = req.body.result.parameters["pokemon-name"].toLowerCase(),
-        requestType = req.body.result.parameters["request-type"];
-  const id = pokeID[pokemonName];
-  var response;
-
-  if (!id); // no pokemon found
-
-  switch(requestType) {
-    case "information":
-      response = generalInfo(id);
-      break;
-    case "type":
-      response = type(pokemonName);
-      break;
-    case "evolution":
-      break;
-    case "pre-evolution":
-      break;
-    case "size":
-      break;
-    default:
-      break;
-  }
-  response.then(answer => res.json(assembleResponse(answer)));
-};
+const pokeStore = require("./formattedPokemon");
 
 // Assembles the response that API.ai expects
 var assembleResponse = answer => ({ speech: answer, displayText: answer });
+var pokemon404 = name => `I'm sorry, I don't know about ${name}`
+var invalidRequest = type => `I'm sorry, I don't understand ${type}`
 
-// Assembles a text list from an array
-// Example: array = ["dogs", "cats", "horses"]
-//          text = "dogs, cats, and horses
-//          array = ["ice cream", "brownies"]
-//          text = "ice cream and brownies"
-var arrayToText = array => {
-  if (!array || array.length === 0) return "";
-  else if (array.length === 1) return array[0];
-  else if (array.length > 1) {
-    let l = array.length;
-    let comma = (l > 2) ? ',' : '';
-    let text = `${array[l-2]}${comma} and ${array[l-1]}`
-    for (i=l-3; i>=0; i--) text = `${array[i]}, ${text}`;
-    return text;
+var information = (req, res) => {
+  const pokemonName = req.body.result.parameters["pokemon-name"].toLowerCase(),
+  const requestType = req.body.result.parameters["request-type"];
+  const pokemon = pokeStore[pokemonName];
+  var response;
+
+  if (!pokemon) response = pokemon404(name); // no pokemon found
+  else {
+    switch(requestType) {
+      case "information":
+        response = generalInfo(id);
+        break;
+      case "type":
+        response = type(pokemon);
+        break;
+      case "evolution":
+        response = evolution(pokemon)
+        break;
+      case "pre-evolution":
+        response = evolution(pokemon, false);
+        break;
+      case "size":
+        break;
+      default:
+        response = invalidRequest(requestType);
+        break;
+    }
   }
-}
+
+  res.json(assembleResponse(response));
+};
 
 var generalInfo = id => {
 };
 
 // Gets the type of the pokemon
-var type = name => {
-  return fetch(pokeAPIUrl+`pokemon/${name}`).then(res => res.json()).then(res => {
-    if (!res["types"]) return `No type found for ${name}`;
-    let typeArr = res["types"].map(obj => obj["type"]["name"]);
-    return `${name} is type ` + arrayToText(typeArr);
-  });
+var type = pokemon => {
+  if (!pokemon.types) return `No type found for ${name}`;
+  return `${name} is type ` + arrayToText(typeArr);
 };
+
+
+var searchEvolTree = (tree, pokemon) => {
+  if (tree[pokemon])
+}
+
+var evolution = pokemon => {
+  if (pokemon.evolutions)
+}
 
 module.exports = information;
