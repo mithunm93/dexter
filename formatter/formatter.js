@@ -30,15 +30,15 @@ var isEnglish = text => text.language.name === "en";
 
 // must pass in { id: "..." }
 var generalInfo = pokeObj =>
-  pokeFetch(`pokemon/${pokeObj.id}`).then(res =>{
+  pokeFetch(`pokemon/${pokeObj.id}`).then(res =>
     Object.assign({}, pokeObj, {
       name: res.name,
       height: res.height,
       weight: res.weight,
       types: res.types.map(obj => obj.type.name),
-      moves: res.moves.map(move => moves.move.name),
+      moves: res.moves.map(move => move.move.name),
     })
-  });
+  );
 
 
 // Assembles a text list from an array
@@ -155,7 +155,7 @@ var runScript = (i=1, formattedPokemonObj={}) =>
     .then(speciesInfo)
     .then(evolutionInfo)
     .then(pokeObj => {
-      console.log(`Got information for ${obj.name}`)
+      console.log(`Got information for ${pokeObj.name}`)
       Object.assign(formattedPokemonObj, { [pokeObj.name]: pokeObj });
       if (i <= pokeList.length) runScript(++i, formattedPokemonObj);
       else fs.writeFile("../data/pokemon.json", JSON.stringify(formattedPokemonObj), err => console.log(err ? err : "The file was saved!"));
