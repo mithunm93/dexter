@@ -1,7 +1,32 @@
 const pokeStore = require("./data/pokemon");
 
-// Assembles the response that API.ai expects
-var assembleResponse = answer => ({ speech: answer, displayText: answer });
+var parseAmazonType = type => {
+  if (["information", "info", "about"].indexOf(type) !== -1) return "information";
+  else if (["type"].indexOf(type) !== -1) return "type";
+  else if (["evolve into", "evolution"].indexOf(type) !== -1) return "evolution";
+  else if (["pre-evolution", "pre evolution", "evolve from"].indexOf(type) !== -1) return "pre-evolution";
+  else if (["size", "big", "tall", "heavy", "weigh"].indexOf(type) !== -1) return "size";
+  else return "";
+}
+
+// Assembles the response that API.AI or Amazon expects
+var assembleResponse = answer =>
+  requestFrom === "GOOGLE" ? {
+    speech: answer,
+    displayText: answer,
+    data: {},
+    contextOut: [],
+    source: "pokeApi",
+  } : {
+    version: "1.0",
+    response: {
+      outputSpeech: {
+        type: "PlainText",
+        text: answer,
+      },
+    },
+  };
+
 var pokemon404 = name => `I'm sorry, I don't know about ${name}`
 var invalidRequest = type => `I'm sorry, I don't understand ${type}`
 
@@ -23,9 +48,21 @@ var arrayToText = (array, useOr=false) => {
   }
 }
 
+var requestFrom;
 var information = (req, res) => {
-  const pokemonName = req.body.result.parameters["pokemon-name"].toLowerCase();
-  const requestType = req.body.result.parameters["request-type"];
+  var pokemonName = "";
+  var requestType = "";
+
+  if (req.body.result) {            // request from Google Home
+    requestFrom = "GOOGLE";
+    pokemonName = req.body.result.parameters["pokemon-name"][0].toLowerCase();
+    requestType = req.body.result.parameters["request-type"];
+  } else if (req.body.request) {    // request from Amazon Alexa
+    requestFrom = "AMAZON";
+    pokemonName = req.body.request.intent.slots.pokemonnameslot.value.toLowerCase();
+    requestType = parseAmazonType(req.body.request.intent.slots.requesttypeslot.value);
+  }
+
   const pokemon = pokeStore[pokemonName];
   var response;
 
@@ -67,7 +104,7 @@ var generalInfo = pokemon =>
   `${pokemon.name}, the ${pokemon.genera} pokemon.${chooseRandom(pokemon.flavorText)}`;
 
 // Gets the type of the pokemon
-var type = pokemon => `${name} is type ` + arrayToText(typeArr);
+var type = pokemon => `${pokemon.name} is type ` + arrayToText(pokemon.types);
 
 var evolution = (pokemon, preEvolution=false) => {
   let textArray = [];
