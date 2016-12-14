@@ -1,8 +1,9 @@
-const pickBy = require("lodash/pickby");
-const fetch = require("node-fetch");
+var pickBy = require("lodash/pickby");
+var fetch = require("node-fetch");
+var fs = require("fs");
+var arrayToText = require("../lib/arrayToText.js");
 const pokeList = require("./formatted_pokemon.json").pokemon;
 const evolCondText = require("./evolution_conditions.json")
-const fs = require('fs');
 
 /*
  * This script exits to fetch data from the pokeapi: https://pokeapi.co/
@@ -40,24 +41,6 @@ var generalInfo = pokeObj =>
     })
   );
 
-
-// Assembles a text list from an array
-// Example: array = ["dogs", "cats", "horses"]
-//          text = "dogs, cats, and horses
-//          array = ["ice cream", "brownies"], useOr = true
-//          text = "ice cream or brownies"
-var arrayToText = (array, useOr=false) => {
-  if (!array || array.length === 0) return "";
-  else if (array.length === 1) return array[0];
-  else if (array.length > 1) {
-    let conjunction = useOr ? "or" : "and";
-    let l = array.length;
-    let comma = (l > 2) ? ',' : '';
-    let text = `${array[l-2]}${comma} ${conjunction} ${array[l-1]}`
-    for (i=l-3; i>=0; i--) text = `${array[i]}, ${text}`;
-    return text;
-  }
-}
 
 var parseEvolutionDetails = tree =>
   arrayToText(tree.evolution_details.map(det => {
