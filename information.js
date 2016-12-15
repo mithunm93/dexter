@@ -129,7 +129,7 @@ var parseRequest = req => new Promise((resolve, reject) => {
     // for Amazon Alexa
     // sessionId doesn't really matter, API.AI needs a sessionId though
     const sessionId = `${Math.floor(Math.random()*MAX_SESSION_ID)}`;
-    let request = app.textRequest(req.resolved.resolvedQuery, { sessionId });
+    let request = app.textRequest(req.request.intent.slots.request.value, { sessionId });
     request.on('response', response => resolve(returnHash(response, AMAZON)));
     request.on('error', error => reject(error));
     request.end();
