@@ -4,42 +4,41 @@ var numeral = require("numeral");
 const pokeStore = require("./data/pokemon");
 var arrayToText = require("./lib/arrayToText.js");
 
-var information = (req, res, next) =>
-  parseRequest(req.body).then(parsedResponse => {
-    const { pokemonName, requestType, requestFrom } = parsedResponse;
-    const pokemon = pokeStore[pokemonName];
-    var response;
+var information = (req, res) => {
+  const { pokemonName, requestType, requestFrom } = parseRequest(req.body);
+  if (!pokemonName)
+    return res.json(assembleResponse(pokemon404("that pokemon"), requestFrom));
+  const pokemon = pokeStore[pokemonName.toLowerCase()];
+  var response;
 
-    if (!pokemon) response = pokemon404(pokemonName); // no pokemon found
-    else {
-      switch(requestType) {
-        case "information":
-          response = generalInfo(pokemon);
-          break;
-        case "type":
-          response = type(pokemon);
-          break;
-        case "evolution":
-          response = evolution(pokemon)
-          break;
-        case "pre-evolution":
-          response = evolution(pokemon, true);
-          break;
-        case "size":
-          response = size(pokemon);
-          break;
-        default:
-          response = invalidRequest(requestType);
-          break;
-      }
+  if (!pokemon) response = pokemon404(pokemonName); // no pokemon found
+  else {
+    switch(requestType) {
+      case "type":
+        response = type(pokemon);
+        break;
+      case "evolution":
+        response = evolution(pokemon)
+        break;
+      case "pre-evolution":
+        response = evolution(pokemon, true);
+        break;
+      case "size":
+        response = size(pokemon);
+        break;
+      case "information":
+      default:
+        response = generalInfo(pokemon);
+        break;
     }
+  }
 
-    res.json(assembleResponse(response, requestFrom));
-  });
+  res.json(assembleResponse(response, requestFrom));
+}
 
 // Typical pokedex entry
 var generalInfo = pokemon =>
-  `${pokemon.name}, the ${pokemon.genera} pokemon.${chooseRandom(pokemon.flavorText)}`;
+  `${pokemon.name}, the ${pokemon.genera} pokemon. ${chooseRandom(pokemon.flavorText)}`;
 
 // Gets the type of the pokemon
 var type = pokemon => `${pokemon.name} is type ` + arrayToText(pokemon.types);
@@ -95,8 +94,9 @@ var chooseRandom = (array, num=1) => {
 }
 
 // Assembles the response that API.AI or Amazon expects
-var assembleResponse = (answer, from) =>
-  from === GOOGLE ? {
+var assembleResponse = (answer, from) => {
+  console.log(answer);
+  return from === GOOGLE ? {
     speech: answer,
     displayText: answer,
     data: {},
@@ -111,27 +111,29 @@ var assembleResponse = (answer, from) =>
       },
     },
   };
+}
 
 var pokemon404 = name => `I'm sorry, I don't know about ${name}`
 var invalidRequest = type => `I'm sorry, I don't understand ${type}`
 
+var parseAlexaType = type => {
+  if (["information", "info", "about"].indexOf(type) !== -1) return "information";
+  else if (["type"].indexOf(type) !== -1) return "type";
+  else if (["evolve into", "evolution"].indexOf(type) !== -1) return "evolution";
+  else if (["pre-evolution", "pre evolution", "evolve from"].indexOf(type) !== -1) return "pre-evolution";
+  else if (["size", "big", "tall", "heavy", "weigh"].indexOf(type) !== -1) return "size";
+  else return "";
+}
 // convert to Promise for easier handling
-var parseRequest = req => new Promise((resolve, reject) => {
-  var returnHash = (res, requestFrom) => ({
-    pokemonName: res.result.parameters["pokemon-name"][0].toLowerCase(),
-    requestType: res.result.parameters["request-type"],
-    requestFrom,
-  });
-
-  // Form Google Home, API.AI has already processed it
-  if (req.result) resolve(returnHash(req, GOOGLE));
-  else {
-    // for Amazon Alexa
-    // sessionId doesn't really matter, API.AI needs a sessionId though
-    const sessionId = `${Math.floor(Math.random()*MAX_SESSION_ID)}`;
-    let request = app.textRequest(req.request.intent.slots.request.value, { sessionId });
-    request.on('response', response => resolve(returnHash(response, AMAZON)));
-    request.on('error', error => reject(error));
-    request.end();
-  }
-});
+var parseRequest = req => {
+  console.log(JSON.stringify(req));
+  return req.result ? {
+    pokemonName: req.result.parameters["pokemon-name"][0],
+    requestType: req.result.parameters["request-type"],
+    requestFrom: GOOGLE,
+  } : {
+    pokemonName: req.request.intent.slots.pokemonnameslot.value,
+    requestType: parseAlexaType(req.request.intent.slots.requesttypeslot.value),
+    requestFrom: AMAZON,
+  };
+}
