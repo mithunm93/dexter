@@ -2,18 +2,20 @@ const clientToken = require("./data/private").apiAiClientToken;
 const app = require("apiai")(clientToken);
 var numeral = require("numeral");
 const pokeStore = require("./data/pokemon");
+const typeStore = require("./data/types");
 var arrayToText = require("./lib/arrayToText.js");
 
 var information = (req, res) => {
-  const { pokemonName, requestType, requestFrom } = parseRequest(req.body);
-  if (!pokemonName)
-    return res.json(assembleResponse(pokemon404("that pokemon"), requestFrom));
-  const pokemon = pokeStore[pokemonName.toLowerCase()];
-  var response;
+  const { pokemonName, typeName, requestType, requestFrom } = parseRequest(req.body);
+  var response, pokemon;
+  if (pokemonName)
+    pokemon = pokeStore[pokemonName.toLowerCase()];
 
-  if (!pokemon) response = pokemon404(pokemonName); // no pokemon found
-  else {
-    switch(requestType) {
+  // could check weaknesses against a pokemon or a type
+  if (requestType === "type-strength" || requestType === "type-weakness")
+    response = typeStrengths(pokemon, typeName, requestType === "type-strength");
+  else if (pokemon) {
+    switch (requestType) {
       case "type":
         response = type(pokemon);
         break;
@@ -31,7 +33,7 @@ var information = (req, res) => {
         response = generalInfo(pokemon);
         break;
     }
-  }
+  } else response = pokemon404("that pokemon"); // no pokemon found
 
   res.json(assembleResponse(response, requestFrom));
 }
@@ -66,6 +68,54 @@ var evolution = (pokemon, preEvolution=false) => {
 
 var size = pokemon =>
   `${pokemon.name} is ${decimeterToImperial(pokemon.height)} tall and weighs ${hectogramToImperial(pokemon.weight)}`;
+
+var typeStrengths = (pokemon, typeName, isStrength) => {
+  let types, text, superEffective = [], notVeryEffective = [], noEffect = [];
+  let doublDamage, halfDamage, noDamage;
+  let damageTaken = {};
+
+  if (pokemon)
+    types = pokemon.types.map(t => typeStore[t]);
+  else
+    types = [typeStore[typeName]];
+
+  for (let t of types) {
+    for (let dDType of t.double_damage_from)
+      damageTaken[dDType] = (dDType in damageTaken) ? damageTaken[dDType]*2 : 2;
+    for (let hDType of t.half_damage_from)
+      damageTaken[hDType] = (hDType in damageTaken) ? damageTaken[hDType]*0.5 : 0.5;
+    for (let nDType of t.no_damage_from)
+      damageTaken[nDType] = (nDType in damageTaken) ? damageTaken[nDType]*0 : 0;
+  }
+
+  for (let t of Object.keys(damageTaken)) {
+    if (damageTaken[t] === 0) noEffect.push(t);
+    else if (damageTaken[t] > 1) superEffective.push(t);
+    else if (damageTaken[t] < 1) notVeryEffective.push(t);
+  }
+
+  // I'm assuming the user would say something like:
+  //   "what is strong against Clefairy" or
+  //   "what is strong against fire"
+  // so we want to tell the user the weakness of that pokemon or type.
+  // It's a little awkward to ask what something is weak against, but
+  // I imagine that won't be that common.
+  if (isStrength)
+    text = `${arrayToText(superEffective)} type moves are super effective against `;
+  else {
+    text = `${arrayToText(notVeryEffective)} type moves are not very effective `
+    if (noEffect.length > 0)
+      text += `and ${arrayToText(noEffect)} type moves do no damage `
+    text += "against ";
+  }
+
+  if (pokemon)
+    text = text + `${pokemon.name}, a ${arrayToText(types.map(t => t.name))} type pokemon`;
+  else
+    text = text + `pokemon of type ${arrayToText(types.map(t => t.name))}`;
+
+  return text;
+};
 
 module.exports = information;
 
@@ -124,15 +174,17 @@ var parseAlexaType = type => {
   else if (["size", "big", "tall", "heavy", "weigh"].indexOf(type) !== -1) return "size";
   else return "";
 }
-// convert to Promise for easier handling
+
 var parseRequest = req => {
   console.log(JSON.stringify(req));
   return req.result ? {
-    pokemonName: req.result.parameters["pokemon-name"][0],
+    pokemonName: req.result.parameters["pokemon-name"],
+    typeName: req.result.parameters["type-name"],
     requestType: req.result.parameters["request-type"],
     requestFrom: GOOGLE,
   } : {
     pokemonName: req.request.intent.slots.pokemonnameslot.value,
+    typeName: req.request.intent.slots.typenameslot.value,
     requestType: parseAlexaType(req.request.intent.slots.requesttypeslot.value),
     requestFrom: AMAZON,
   };
