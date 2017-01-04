@@ -1,4 +1,5 @@
 var pickBy = require("lodash/pickby");
+var map = require("lodash/map");
 var fetch = require("node-fetch");
 var fs = require("fs");
 var arrayToText = require("../lib/arrayToText.js");
@@ -27,6 +28,7 @@ const evolCondText = require("./evolution_conditions.json")
 
 const pokeUrl = "http://localhost:8000/api/v2/";
 var pokeFetch = (action, append=true) => fetch(append ? pokeUrl+action : action).then(res => res.json());
+var writeFile = (file, obj) => fs.writeFile(file, JSON.stringify(obj), err => console.log(err ? err : "The file was saved!"));
 var isEnglish = text => text.language.name === "en";
 
 // must pass in { id: "..." }
@@ -133,15 +135,28 @@ var evolutionInfo = pokeObj =>
 // This funciton is recursively called for each pokemon.
 // To add more fields to pull, just chain onto the last .then
 // before the final one.
-var runScript = (i=1, formattedPokemonObj={}) =>
+var runPokeInfoScript = (i=1, formattedPokemonObj={}) =>
   generalInfo({id: i})
     .then(speciesInfo)
     .then(evolutionInfo)
     .then(pokeObj => {
       console.log(`Got information for ${pokeObj.name}`)
       Object.assign(formattedPokemonObj, { [pokeObj.name]: pokeObj });
-      if (i <= pokeList.length) runScript(++i, formattedPokemonObj);
-      else fs.writeFile("../data/pokemon.json", JSON.stringify(formattedPokemonObj), err => console.log(err ? err : "The file was saved!"));
+      if (i <= pokeList.length) runPokeInfoScript(++i, formattedPokemonObj);
+      else writeFile("../data/pokemon.json", formattedPokemonObj);
     });
 
-runScript();
+var runPokeTypeScript = (i=1, formattedTypeObj={}) =>
+  pokeFetch(`type/${i}`)
+    .then(typeObj => {
+      console.log(`Writing type info for ${typeObj.name}`)
+      let obj = { name: typeObj.name };
+      for (let damageKey in typeObj.damage_relations)
+        obj[damageKey] = map(typeObj.damage_relations[damageKey], k => k.name);
+      Object.assign(formattedTypeObj, { [typeObj.name]: obj });
+      if (i <= 17) runPokeTypeScript(++i, formattedTypeObj);
+      else writeFile("../data/types.json", formattedTypeObj);
+    });
+
+runPokeInfoScript()
+  .then(runPokeTypeScript;
