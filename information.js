@@ -175,6 +175,9 @@ var invalidRequest = type => `I'm sorry, I don't understand ${type}`
 var parseAlexaType = type => {
   if (["information", "info", "about"].indexOf(type) !== -1) return "information";
   else if (["type"].indexOf(type) !== -1) return "type";
+  else if (["random"].indexOf(type) !== -1) return "random";
+  else if (["strong against", "good against", "super effective"].indexOf(type) !== -1) return "type-strength";
+  else if (["weak against", "bad against", "not very effective", "not effective"].indexOf(type) !== -1) return "type-weakness";
   else if (["evolve into", "evolution"].indexOf(type) !== -1) return "evolution";
   else if (["pre-evolution", "pre evolution", "evolve from"].indexOf(type) !== -1) return "pre-evolution";
   else if (["size", "big", "tall", "heavy", "weigh"].indexOf(type) !== -1) return "size";
