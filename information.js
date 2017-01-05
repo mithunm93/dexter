@@ -14,6 +14,8 @@ var information = (req, res) => {
   // could check weaknesses against a pokemon or a type
   if (requestType === "type-strength" || requestType === "type-weakness")
     response = typeStrengths(pokemon, typeName, requestType === "type-strength");
+  else if (requestType === "random")
+    response = random();
   else if (pokemon) {
     switch (requestType) {
       case "type":
@@ -116,6 +118,10 @@ var typeStrengths = (pokemon, typeName, isStrength) => {
 
   return text;
 };
+
+// Give the general info from a random pokemon
+var random = () =>
+  generalInfo(pokeStore[Object.keys(pokeStore)[Math.floor(Math.random()*Object.keys(pokeStore).length)]]);
 
 module.exports = information;
 
