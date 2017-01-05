@@ -14,8 +14,8 @@ var information = (req, res) => {
   // could check weaknesses against a pokemon or a type
   if (requestType === "type-strength" || requestType === "type-weakness")
     response = typeStrengths(pokemon, typeName, requestType === "type-strength");
-  else if (requestType === "random")
-    response = random();
+  else if (requestType === "random") response = random();
+  else if (requestType === "help") response = help();
   else if (pokemon) {
     switch (requestType) {
       case "type":
@@ -120,8 +120,18 @@ var typeStrengths = (pokemon, typeName, isStrength) => {
 };
 
 // Give the general info from a random pokemon
-var random = () =>
-  generalInfo(pokeStore[Object.keys(pokeStore)[Math.floor(Math.random()*Object.keys(pokeStore).length)]]);
+var random = () => generalInfo(randomPokemon());
+
+var help = () => "Hello my name is dexter, ask me about pokemon. Here are some things you can say: "
+  + arrayToText([`Tell me about ${randomPokemon().name}`,
+  `What does ${randomPokemon().name} evolve into?`,
+  `What does ${randomPokemon().name} evolve from?`,
+  `How big is ${randomPokemon().name}?`,
+  "Give me a random pokemon",
+  "What is strong against fire?",
+  `What is strong against ${randomPokemon().name}?`,
+  "What is weak against poison?",
+  "Help"]);
 
 module.exports = information;
 
@@ -132,6 +142,8 @@ const DEC_PER_FOOT = 3.048;
 const HEC_PER_POUND = 4.536;
 const INCHES_PER_FOOT = 12;
 const MAX_SESSION_ID = 1000000;
+
+var randomPokemon = () => pokeStore[chooseRandom(Object.keys(pokeStore))];
 
 var hectogramToImperial = hec => `${numeral(hec).divide(HEC_PER_POUND).format("0.0")} pounds`;
 
@@ -144,9 +156,9 @@ var decimeterToImperial = dec => {
 }
 
 var chooseRandom = (array, num=1) => {
-  let textArray = [];
-  for (i=0; i<num; i++) textArray.push(array[Math.floor(Math.random()*array.length)]);
-  return arrayToText(textArray);
+  let arr = [];
+  for (i=0; i<num; i++) arr.push(array[Math.floor(Math.random()*array.length)]);
+  return (arr.length > 1) ? arr : arr[0];
 }
 
 // Assembles the response that API.AI or Amazon expects
