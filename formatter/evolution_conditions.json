@@ -1,0 +1,19 @@
+{
+   "min_level": "reaches level ",
+   "min_beauty": "has a beauty of ",
+   "time_of_day": "is during the ",
+   "gender": "has a gender of ",
+   "relative_physical_stats": "has the relative physical stats of ",
+   "needs_overworld_rain": "is raining ",
+   "turn_upside_down": "is turned upside down ",
+   "item": "uses a ",
+   "known_move_type": "knows a move of type ",
+   "min_affection": "reaches an affection of ",
+   "party_type": "has a party of type ",
+   "trade_species": "is traded with ",
+   "party_species": "is in a party with ",
+   "min_happiness": "has a happiness of ",
+   "held_item": "is holding a ",
+   "known_move": "knows the move ",
+   "location": "is at "
+}
