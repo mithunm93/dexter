@@ -5,9 +5,14 @@ Dexter is meant to emulate the Pokedex from Pokemon. Use it to learn many differ
 ### [Try it out](https://bot.api.ai/eb6dd4da-a542-4f5a-9dcf-29c28d843adc)
 
 Here are a few things you can ask it:
- - Tell me about cyndaquil
- - How big is lampent?
- - What is good against groudon?
- - Give me a random pokemon
+
+- Tell me about cyndaquil
+- How big is lampent?
+- What is good against groudon?
+- Give me a random pokemon
  
  Check out the [Wiki](https://github.com/mithunm93/dexter/wiki) for a full list of Dexter's capabilities.
+ 
+ ### Acknowledgements
+ 
+This project couldn't have been done without the [poke API](http://pokeapi.co/), huge props to that team for putting the information together!
