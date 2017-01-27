@@ -1,6 +1,8 @@
 const clientToken = require("./data/private").apiAiClientToken;
 const app = require("apiai")(clientToken);
 var numeral = require("numeral");
+var map = require("lodash/map");
+var filter = require("lodash/filter");
 const pokeStore = require("./data/pokemon");
 const typeStore = require("./data/types");
 var arrayToText = require("./lib/arrayToText.js");
@@ -8,13 +10,13 @@ var arrayToText = require("./lib/arrayToText.js");
 var information = (req, res) => {
   const { pokemonName, typeName, requestType, requestFrom } = parseRequest(req.body);
   var response, pokemon;
-  if (pokemonName)
+  if (pokemonName && pokemonName.length > 0)
     pokemon = pokeStore[pokemonName.toLowerCase()];
 
   // could check weaknesses against a pokemon or a type
   if (requestType === "type-strength" || requestType === "type-weakness")
     response = typeStrengths(pokemon, typeName, requestType === "type-strength");
-  else if (requestType === "random") response = random();
+  else if (requestType === "random") response = random(typeName);
   else if (requestType === "help") response = help();
   else if (pokemon) {
     switch (requestType) {
@@ -120,7 +122,7 @@ var typeStrengths = (pokemon, typeName, isStrength) => {
 };
 
 // Give the general info from a random pokemon
-var random = () => generalInfo(randomPokemon());
+var random = type => generalInfo(randomPokemon(type));
 
 var help = () => "Hello my name is dexter, ask me about pokemon. Here are some things you can say: "
   + arrayToText([`Tell me about ${randomPokemon().name}`,
@@ -143,7 +145,14 @@ const HEC_PER_POUND = 4.536;
 const INCHES_PER_FOOT = 12;
 const MAX_SESSION_ID = 1000000;
 
-var randomPokemon = () => pokeStore[chooseRandom(Object.keys(pokeStore))];
+var randomPokemon = type => {
+  if (type) {
+    let pokeTypeObj = map(pokeStore, pokemon => ({ name: pokemon.name, types: pokemon.types }));
+    let pokemonOfType = filter(pokeTypeObj, o => o.types.indexOf(type) !== -1);
+    return pokeStore[chooseRandom(map(pokemonOfType, o => o.name))];
+  } else
+    return pokeStore[chooseRandom(Object.keys(pokeStore))];
+}
 
 var hectogramToImperial = hec => `${numeral(hec).divide(HEC_PER_POUND).format("0.0")} pounds`;
 
